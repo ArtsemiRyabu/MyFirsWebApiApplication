@@ -1,0 +1,262 @@
+﻿<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width" />
+    <title>Заказы</title>
+    <link href="lib/bootstrap/dist/css/bootstrap.css" rel="stylesheet" />
+    <script src="lib/jquery/dist/jquery.js"></script>
+    <link href="lib/jquery-ui/themes/base/jquery-ui.min.css" rel="stylesheet" />
+    <script src="lib/jquery-ui/jquery-ui.js"></script>
+    <script src="lib/jquery-ui/ui/i18n/datepicker-ru.js"></script>
+</head>
+<body>
+    <div class="container">
+        <h2>Список заказов</h2>
+        <form name="orderForm">
+            <label for="computerOrderId" id="CRUD" name="CRUD">Добавить:</label>
+            <input type="hidden" id="computerOrderId" name="computerOrderId" value=0 />
+            <div class="form-group">
+                <label Добавить>Клиент:</label>
+                <select id="customerId" name="customerId"></select>
+            </div>
+            <div class="form-group">
+                <label Добавить>Сотрудник:</label>
+                <select id="employeeId" name="employeeId"></select>
+            </div>
+            <div class="form-group">
+                <label for="orderDate">Дата заказа</label>
+                <input class="form-control" name="orderDate" id="orderDate" />
+            </div>
+            <div class="form-group">
+                <label for="executionDate">Дата готовности</label>
+                <input class="form-control" name="executionDate" id="executionDate" />
+            </div>
+            <div class="form-group">
+                <label for="prepayment">Предоплата</label>
+                <input class="form-control" name="prepayment" id="prepayment" />
+            </div>
+            <div class="form-group">
+                <label for="workmark">Марка</label>
+                <input class="form-control" name="workmark" id="workmark" />
+            </div>
+            <div class="form-group">
+                <label for="allCost">Цена</label>
+                <input class="form-control" name="allCost" id="allCost" />
+            </div>
+            <div class="form-group">
+                <label for="guaranteePeriod">Гарантийный срок</label>
+                <input class="form-control" name="guaranteePeriod" id="guaranteePeriod" />
+            </div>
+            <div class="panel-body">
+                <button type="submit" class="btn btn-sm btn-primary">Сохранить</button>
+                <a id="reset" class="btn btn-sm btn-primary">Сбросить</a>
+            </div>
+        </form>
+
+
+        <table class="table table-condensed table-striped table-bordered">
+            <thead><tr><th>Код</th><th>Дата заказа</th><th>Дата готовности</th><th>Имя клиента</th><th>Предоплата</th><th>Марка</th><th>Цена</th><th>Гарантия</th><th>Имя сотрудника</th></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <script>
+        function Getorders() {
+            $.ajax({
+                url: '/api/computerOrder',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (computerOrders) {
+                    var rows = "";
+                    $.each(computerOrders, function (index, computerOrder) {
+                        rows += row(computerOrder);
+                    })
+                    $("table tbody").append(rows);
+                }
+            });
+        }
+
+        function Getorder(id) {
+            $.ajax({
+                url: '/api/computerOrder/'+id,
+                type: 'GET',
+                contentType: "application/json",
+                success: function (computerOrder) {
+                    var form = document.forms["orderForm"];
+                    form.elements["computerOrderId"].value = computerOrder.computerOrderId;
+                    form.elements["executionDate"].value = computerOrder.executionDate.substring(0, 10);
+                    form.elements["orderDate"].value = computerOrder.orderDate.substring(0, 10);
+                    form.elements["customerId"].selectedIndex = computerOrder.customerId;
+                    form.elements["prepayment"].value = computerOrder.prepayment;
+                    form.elements["workmark"].value = computerOrder.workmark;
+                    form.elements["allCost"].value = computerOrder.allCost;
+                    form.elements["guaranteePeriod"].value = computerOrder.guaranteePeriod;
+                    form.elements["employeeId"].selectedIndex = computerOrder.employeeId;
+                }
+            });
+        }
+
+        function Createorder(orderDate, executionDate, customerId, prepayment, workmark, allCost, guaranteePeriod, employeeId) {
+            $.ajax({
+                url: "api/computerOrder",
+                contentType: "application/json",
+                method: "POST",
+                data: JSON.stringify({
+                    orderDate: orderDate,
+                    executionDate: executionDate,
+                    employeeId: employeeId,
+                    prepayment: parseFloat(prepayment),
+                    workmark: workmark,
+                    allCost: parseFloat(allCost),
+                    guaranteePeriod: guaranteePeriod,
+                    customerId: customerId
+                }),
+                success: function (computerOrder) {
+                    reset();
+                    var form = document.forms["orderForm"];
+                    computerOrder.customerName = form.elements["customerId"].options[customerId].text;
+                    computerOrder.employeeName = form.elements["employeeId"].options[employeeId].text;
+                    $("table tbody").append(row(computerOrder));
+                }
+            })
+        }
+
+        function Editorder(computerOrderId, orderDate, executionDate, customerId, prepayment, workmark, allCost, guaranteePeriod, employeeId) {
+            $.ajax({
+                url: "api/computerOrder",
+                contentType: "application/json",
+                method: "PUT",
+                data: JSON.stringify({
+                    computerOrderId: computerOrderId,
+                    orderDate: orderDate,
+                    executionDate: executionDate,
+                    employeeId: employeeId,
+                    prepayment: parseFloat(prepayment),
+                    workmark: workmark,
+                    allCost: parseFloat(allCost),
+                    guaranteePeriod: guaranteePeriod,
+                    customerId: customerId
+                }),
+                success: function (computerOrder) {
+                    reset();
+                    var form = document.forms["orderForm"];
+                    computerOrder.customerId = form.elements["customerId"].options[customerId].text;
+                    computerOrder.employeeId = form.elements["employeeId"].options[employeeId].text;
+                    $("tr[data-rowid='" + computerOrder.computerOrderId + "']").replaceWith(row(computerOrder));
+                }
+            })
+        }
+
+        function reset() {
+            var form = document.forms["orderForm"];
+            form.reset();
+            form.elements["comuterOrderId"].value = 0;
+            $("#CRUD").html("Добавить:");
+        }
+
+        function Deleteorder(id) {
+            $.ajax({
+                url: "api/computerOrder/" + id,
+                contentType: "application/json",
+                method: "DELETE",
+                success: function (computerOrder) {
+                    $("tr[data-rowid='" + computerOrder.computerOrderId + "']").remove();
+                }
+            })
+        }
+
+        var row = function (computerOrder) {
+            return "<tr data-rowid='" + computerOrder.computerOrderId + "'><td>" + computerOrder.computerOrderId + "</td>" +
+                "<td>" + computerOrder.orderDate.substring(0, 10) + "</td>" +
+                "<td>" + computerOrder.executionDate.substring(0, 10) + "</td>" +
+                "<td>" + computerOrder.customerName + "</td>" +
+                "<td>" + computerOrder.prepayment + "</td>" +
+                "<td>" + computerOrder.workmark + "</td>" +
+                "<td>" + computerOrder.allCost + "</td>" +
+                "<td>" + computerOrder.guaranteePeriod + "</td>" +
+                "<td>" + computerOrder.employeeName + "</td>" +
+                "<td><a class='editLink' data-id='" + computerOrder.computerOrderId + "'>Изменить</a> | " +
+                "<a class='removeLink' data-id='" + computerOrder.computerOrderId + "'>Удалить</a></td></tr>";
+        }
+
+        function GetEmployees() {
+            var listItems = "";
+            $.ajax({
+                url: '/api/computerOrder/employees',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (employees) {
+                    listItems = listItems + "<option value=0 selected>(выбор)</option>";
+                    $.each(employees, function (index, employee) {
+                        listItems = listItems + "<option value='" + employee.employeeId + "'>" + employee.name + "</option>";
+                    });
+                    $("#employeeId").html(listItems);
+                }
+            });
+        }
+
+        function GetCustomers() {
+            var listItems = "";
+            $.ajax({
+                url: '/api/computerOrder/customers',
+                type: 'GET',
+                contentType: "application/json",
+                success: function (customers) {
+                    listItems = listItems + "<option value=0 selected>(выбор)</option>";
+                    $.each(customers, function (index, customer) {
+                        listItems = listItems + "<option value='" + customer.customerId + "'>" + customer.name + "</option>";
+                    });
+                    $("#customerId").html(listItems);
+                }
+            });
+        }
+
+        $("#reset").click(function (e) {
+            e.preventDefault();
+            reset();
+        })
+
+        $("form").submit(function (e) {
+
+            e.preventDefault();
+            var computerOrderId = this.elements["computerOrderId"].value;
+            var orderDate = this.elements["orderDate"].value;
+            var employeeId = this.elements["employeeId"].selectedIndex;
+            var executionDate = this.elements["executionDate"].value;
+            var workmark = this.elements["workmark"].value;
+            var prepayment = this.elements["prepayment"].value;
+            var allCost = this.elements["allCost"].value;
+            var guaranteePeriod = this.elements["guaranteePeriod"].value;
+            var customerId = this.elements["customerId"].selectedIndex;
+            if (computerOrderId != 0)
+                Editorder(computerOrderId, orderDate, executionDate, customerId, prepayment, workmark, allCost, guaranteePeriod, employeeId);
+            else
+                Createorder(orderDate, executionDate, customerId, prepayment, workmark, allCost, guaranteePeriod, employeeId);
+
+        });
+
+        // нажатие на ссылку Изменить
+        $("body").on("click", ".editLink", function () {
+            var id = $(this).data("id");
+            $("#CRUD").html("Изменить:");
+            Getorder(id);
+        })
+        // нажатие на ссылку Удалить
+        $("body").on("click", ".removeLink", function () {
+            var id = $(this).data("id");
+            Deleteorder(id);
+            reset();
+        })
+
+        Getorders();
+        GetEmployees();
+        GetCustomers();
+        $(document).ready(function () {
+            $("#date").datepicker({ dateFormat: "yy-mm-dd" });
+        });
+
+        
+    </script>
+</body>
+</html>
